@@ -1,0 +1,120 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spring-mysql-deployment
+  labels:
+    app: spring-mysql-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app : spring-mysql-app
+  template:
+    metadata:
+      labels:
+        app: spring-mysql-app
+    spec:
+      containers:
+        - name: spring-app
+          image: supunsandaruwan/spring-mysql-app:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: MYSQL_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: mysql-configmap
+                  key: database_url
+
+            - name: MYSQL_PORT
+              value: "3306"
+
+            - name: MYSQL_DB
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-db
+
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-user
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-password
+
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+        - name: mysql-app
+          image: mysql:8.3.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3306
+          env:
+            - name: MYSQL_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-root-password
+
+            - name: MYSQL_DATABASE
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-db
+
+            - name: MYSQL_USER
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-user
+
+            - name: MYSQL_PASSWORD
+              valueFrom:
+                secretKeyRef: 
+                  name: mysql-secret
+                  key: mysql-password
+
+          resources:
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+
+
+---
+#service for the app
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector: #manage any pod that label exist as 'app:spring-mysql-app'
+    app:  spring-mysql-app
+  ports:
+    - protocol: TCP
+      port:  3306
+      targetPort:  3306 #container port
+
+
+---
+#this kind of services(LoadBalancer) will provide the external IP address
+apiVersion: v1
+kind: Service
+metadata:
+  name:  spring-app-external-service
+spec:
+  selector:
+    app:  spring-mysql-app
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port:  8077
+      targetPort:  8080 #container port
+      nodePort: 30003
