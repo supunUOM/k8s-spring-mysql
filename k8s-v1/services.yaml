@@ -1,0 +1,29 @@
+#service for the app
+apiVersion: v1
+kind: Service
+metadata:
+  name: mysql-service
+spec:
+  selector: #manage any pod that label exist as 'app:spring-mysql-app'
+    app:  spring-mysql-app
+  ports:
+    - protocol: TCP
+      port:  3306
+      targetPort:  3306 #container port
+
+
+---
+#this kind of services(LoadBalancer) will provide the external IP address
+apiVersion: v1
+kind: Service
+metadata:
+  name:  spring-app-external-service
+spec:
+  selector:
+    app:  spring-mysql-app
+  type: LoadBalancer
+  ports:
+    - protocol: TCP
+      port:  8077
+      targetPort:  8080 #container port
+      nodePort: 30003
